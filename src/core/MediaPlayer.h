@@ -19,6 +19,8 @@
 #ifndef VLCQT_MEDIAPLAYER_H_
 #define VLCQT_MEDIAPLAYER_H_
 
+#define VLCQT_AUDIO_FILTER_MOD
+
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QTimer>
@@ -122,6 +124,12 @@ public:
         \param media object (VlcMedia *)
     */
     void openOnly(VlcMedia *media);
+
+    /*!
+        \brief Sets an audio filter
+        \param filter names, comma separated
+    */
+    void setAudioFilters(const QString &filters);
 
 public slots:
     /*! \brief Set the movie time (in ms).

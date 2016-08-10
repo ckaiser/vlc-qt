@@ -18,6 +18,36 @@
 
 #include <vlc/vlc.h>
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
+#include <vlc/libvlc_structures.h>
+#include <vlc/libvlc_media.h>
+#include <vlc_input.h>
+#include <vlc_aout.h>
+
+struct libvlc_media_player_t
+{
+    VLC_COMMON_MEMBERS
+
+    int                i_refcount;
+    vlc_mutex_t        object_lock;
+
+    struct
+    {
+        input_thread_t   *p_thread;
+        input_resource_t *p_resource;
+        vlc_mutex_t       lock;
+    } input;
+
+    struct libvlc_instance_t * p_libvlc_instance;
+    libvlc_media_t * p_md;
+    libvlc_event_manager_t * p_event_manager;
+    libvlc_state_t state;
+};
+
 #include "core/Audio.h"
 #include "core/Error.h"
 #include "core/Instance.h"
@@ -198,6 +228,24 @@ void VlcMediaPlayer::openOnly(VlcMedia *media)
     libvlc_media_player_set_media(_vlcMediaPlayer, media->core());
 
     VlcError::showErrmsg();
+}
+
+void VlcMediaPlayer::setAudioFilters(const QString &filters)
+{
+    if (!_vlcMediaPlayer)
+        return;
+
+    if (_vlcMediaPlayer->input.p_resource != 0) {
+        audio_output_t *aout = input_resource_GetAout(_vlcMediaPlayer->input.p_resource);
+        if (aout != 0) {
+            var_Create((vlc_object_t*)aout, "audio-filter", VLC_VAR_STRING);
+            vlc_value_t val;
+            val.psz_string = filters.toLocal8Bit().data();
+            var_SetChecked((vlc_object_t*)aout, "audio-filter", VLC_VAR_STRING, val);
+            aout->event.restart_request(aout, AOUT_RESTART_FILTERS);
+            input_resource_PutAout(_vlcMediaPlayer->input.p_resource, aout);
+        }
+    }
 }
 
 void VlcMediaPlayer::play()
